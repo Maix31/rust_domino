@@ -1,8 +1,10 @@
+use arrayvec::ArrayVec;
+
 use crate::{tile::Tile, boneyard::{Boneyard, self}, snake::Snake};
 
 pub trait TilesTrait {
-    fn tiles(&self) -> &Vec<Tile>;
-    fn tiles_mut(&mut self) -> &mut Vec<Tile>;
+    fn tiles(&self) -> &ArrayVec<Tile, 21>;
+    fn tiles_mut(&mut self) -> &mut ArrayVec<Tile, 21>;
 }
 
 pub trait HandTrait: TilesTrait {
@@ -29,22 +31,22 @@ pub trait HasHandTrait {
 }
 
 pub struct Hand {
-    pub tiles: Vec<Tile>,
+    pub tiles: ArrayVec<Tile, 21>,
 }
 
 impl Default for Hand {
     fn default() -> Hand {
-        Hand { tiles: Vec::with_capacity(21) }
+        Hand { tiles: ArrayVec::new() }
     }
 }
 
 impl HandTrait for Hand {}
 
 impl TilesTrait for Hand {
-    fn tiles(&self) -> &Vec<Tile> {
+    fn tiles(&self) -> &ArrayVec<Tile, 21> {
         &self.tiles
     }
-    fn tiles_mut(&mut self) -> &mut Vec<Tile> {
+    fn tiles_mut(&mut self) -> &mut ArrayVec<Tile, 21> {
         &mut self.tiles
     }
 }

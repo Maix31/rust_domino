@@ -1,15 +1,16 @@
+use arrayvec::ArrayVec;
 use rand::seq::SliceRandom;
 
 use crate::tile::Tile;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Boneyard {
-    pub tiles: Vec<Tile>,
+    pub tiles: ArrayVec<Tile, 28>,
 }
 
 impl Boneyard {
     pub fn new() -> Boneyard {
-        let mut tiles = Vec::with_capacity(28);
+        let mut tiles = ArrayVec::new();
         for left in 0..7 {
             for right in left..7 {
                 tiles.push(Tile::new(left, right));

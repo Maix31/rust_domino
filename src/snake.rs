@@ -1,15 +1,17 @@
 use std::fmt::Debug;
 
+use arrayvec::ArrayVec;
+
 use crate::tile::Tile;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Snake {
-    pub tiles: Vec<Tile>,
+    pub tiles: ArrayVec<Tile, 27>,
 }
 
 impl Snake {
     pub fn new() -> Snake {
-        Snake { tiles: Vec::with_capacity(21) }
+        Snake { tiles: ArrayVec::new() }
     }
 
     pub fn left(&self) -> Option<u8> {
