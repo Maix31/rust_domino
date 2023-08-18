@@ -4,6 +4,8 @@ use std::{
     thread::current,
 };
 
+use rand::rngs::ThreadRng;
+
 use crate::{
     boneyard::Boneyard,
     hand::{Hand, HandTrait},
@@ -13,8 +15,8 @@ use crate::{
 };
 
 pub struct Game<P1: Player, P2: Player> {
-    blocked_counter: i32,
-    current_player: i32,
+    blocked_counter: u8,
+    current_player: u8,
     players: (P1, P2),
     snake: Snake,
     boneyard: Boneyard,
@@ -43,8 +45,8 @@ pub enum GameState {
 }
 
 impl<P1: Player, P2: Player> Game<P1, P2> {
-    pub fn new() -> Game<P1, P2> {
-        let mut boneyard = Boneyard::new().shuffle();
+    pub fn new(threadRng: &mut ThreadRng) -> Game<P1, P2> {
+        let mut boneyard = Boneyard::new().shuffle(threadRng);
 
         let mut player_0: P1 = Default::default();
         let mut player_1: P2 = Default::default();
@@ -61,7 +63,7 @@ impl<P1: Player, P2: Player> Game<P1, P2> {
             players: (player_0, player_1),
             snake: Snake::new(),
             boneyard,
-            game_mode: GameMode::Draw,
+            game_mode: GameMode::Block,
         }
     }
 
@@ -72,49 +74,9 @@ impl<P1: Player, P2: Player> Game<P1, P2> {
 
         if self.current_player == 0 {
             let current_player = &mut self.players.0;
+            let opponent = &mut self.players.1;
 
-            let is_boneyard_empty = self.game_mode == GameMode::Draw && self.boneyard.is_empty();
-            let is_hand_playable = Self::is_hand_playable(&current_player.hand(), &self.snake);
-    
-            match (!is_hand_playable, is_boneyard_empty) {
-                (true, true) => {
-                    self.blocked_counter += 1;
-                    return (self, GameState::Playing);
-                }
-                (true, false) => {
-                    while !self.boneyard.is_empty() {
-                        let tile = self.boneyard.draw();
-                        current_player.hand_mut().add(tile);
-                        if self.snake.is_playable(tile) {
-                            break;
-                        }
-                    }
-    
-                    if !Self::is_hand_playable(&current_player.hand(), &self.snake) {
-                        self.blocked_counter += 1;
-                        return (self, GameState::Playing);
-                    }
-                }
-                (false, _) => {}
-            };
-    
-            assert!(Self::is_hand_playable(&current_player.hand(), &self.snake));
-    
-            let tile = current_player.choose_tile(&self.snake);
-            self.snake.add(tile);
-    
-            if current_player.hand().is_empty() {
-                return self.game_finished();
-            }
-    
-            self.current_player = (self.current_player + 1) % 2;
-            (self, GameState::Playing)
-
-        } else {
-            let current_player = &mut self.players.1;
-            let opponent = &mut self.players.0;
-
-            let is_boneyard_empty = self.game_mode == GameMode::Draw && self.boneyard.is_empty();
+            let is_boneyard_empty = self.game_mode == GameMode::Block || self.boneyard.is_empty();
             let is_hand_playable = Self::is_hand_playable(&current_player.hand(), &self.snake);
     
             match (!is_hand_playable, is_boneyard_empty) {
@@ -131,6 +93,59 @@ impl<P1: Player, P2: Player> Game<P1, P2> {
                         let tile = self.boneyard.draw();
                         current_player.hand_mut().add(tile);
                         opponent.opponent_drew_tile();
+                        current_player.i_drew_tile(tile);
+                        if self.snake.is_playable(tile) {
+                            break;
+                        }
+                    }
+    
+                    if !Self::is_hand_playable(&current_player.hand(), &self.snake) {
+                        self.blocked_counter += 1;
+                        // player cannot be blocked if there aren't any tiles in the snake
+                        assert!(!self.snake.is_empty());
+                        opponent.opponent_was_blocked([self.snake.left().unwrap(), self.snake.right().unwrap()]);
+                        return (self, GameState::Playing);
+                    }
+                }
+                (false, _) => {}
+            };
+    
+            assert!(Self::is_hand_playable(&current_player.hand(), &self.snake));
+    
+            let tile = current_player.choose_tile(&self.snake);
+            self.snake.add(tile);
+
+            opponent.opponent_played_tile(tile);
+    
+            if current_player.hand().is_empty() {
+                return self.game_finished();
+            }
+    
+            self.current_player = (self.current_player + 1) % 2;
+            (self, GameState::Playing)
+
+        } else {
+            let current_player = &mut self.players.1;
+            let opponent = &mut self.players.0;
+
+            let is_boneyard_empty = self.game_mode == GameMode::Block || self.boneyard.is_empty();
+            let is_hand_playable = Self::is_hand_playable(&current_player.hand(), &self.snake);
+    
+            match (!is_hand_playable, is_boneyard_empty) {
+                (true, true) => {
+                    self.blocked_counter += 1;
+
+                    // player cannot be blocked if there aren't any tiles in the snake
+                    assert!(!self.snake.is_empty());
+                    opponent.opponent_was_blocked([self.snake.left().unwrap(), self.snake.right().unwrap()]);
+                    return (self, GameState::Playing);
+                }
+                (true, false) => {
+                    while !self.boneyard.is_empty() {
+                        let tile = self.boneyard.draw();
+                        current_player.hand_mut().add(tile);
+                        opponent.opponent_drew_tile();
+                        current_player.i_drew_tile(tile);
                         if self.snake.is_playable(tile) {
                             break;
                         }
@@ -206,7 +221,7 @@ impl<P1: Player, P2: Player> Game<P1, P2> {
     }
 }
 
-impl<P1: Player, P2: Player> Debug for Game<P1, P2> {
+impl<'a, P1: Player, P2: Player> Debug for Game<P1, P2> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let tiles_unicode_snake = [
             ['🀱', '🀲', '🀳', '🀴', '🀵', '🀶', '🀷'],

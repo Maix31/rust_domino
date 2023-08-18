@@ -1,5 +1,5 @@
 use arrayvec::ArrayVec;
-use rand::seq::SliceRandom;
+use rand::{seq::SliceRandom, rngs::ThreadRng};
 
 use crate::tile::Tile;
 
@@ -19,13 +19,16 @@ impl Boneyard {
         Boneyard { tiles }
     }
 
-    pub fn shuffle(mut self) -> Self {
-        self.tiles.shuffle(&mut rand::thread_rng());
+    pub fn shuffle(mut self, rng: &mut ThreadRng) -> Self {
+        self.tiles.shuffle(rng);
         self
     }
 
-    pub fn draw_n(&mut self, n: i32) -> Vec<Tile> {
-        self.tiles.drain(0..n as usize).collect()
+    pub fn draw_n(&mut self, n: i32) -> ArrayVec<Tile, 7> {
+        let tiles_count = self.tiles.len();
+        // remove the top n tiles
+        let tiles = self.tiles.drain(tiles_count - n as usize..).collect();
+        tiles
     }
 
     pub fn draw(&mut self) -> Tile {

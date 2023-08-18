@@ -16,7 +16,7 @@ pub trait HandTrait: TilesTrait {
         self.tiles_mut().push(tile);
     }
 
-    fn add_multiple(&mut self, tiles: Vec<Tile>) {
+    fn add_multiple(&mut self, tiles: ArrayVec<Tile, 7>) {
         self.tiles_mut().extend(tiles);
     }
 
