@@ -3,9 +3,9 @@ cargo-features = ["profile-rustflags"]
 [profile.release]
 strip = true  # Automatically strip symbols from the binary.
 lto = true  # Enable link-time optimization.
-# codegen-units = 1  # Compile the entire crate as a single unit.
+codegen-units = 1  # Compile the entire crate as a single unit.
 panic = "abort"
-# opt-level = 2  # Optimize for size.
+opt-level = 3 # Optimize for speed.
 rustflags = ["-Ctarget-cpu=native"]
 # debug = true
 
@@ -22,5 +22,5 @@ dfdx = "0.13.0"
 arrayvec = "0.7.4"
 quanta = "0.11.1"
 bitarray = "0.10.0"
-
+prettytable-rs = "0.10"
 # cargo rustc --release -- --emit asm

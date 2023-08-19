@@ -4,6 +4,7 @@
 	"lldb.dereferencePointers": true,
 	"lldb.consoleMode": "commands",
 	"rust-analyzer.linkedProjects": [
+		".\\Cargo.toml",
 		".\\Cargo.toml"
 	]
 }
